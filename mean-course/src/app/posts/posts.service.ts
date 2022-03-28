@@ -9,23 +9,30 @@ const POSTS_URL = "http://localhost:4201/api/posts";
 @Injectable({providedIn: 'root'})
 export class PostsService {
 	private posts: PostModel[] = [];
-	private postsUpdated = new Subject<PostModel[]>();
+	private postsUpdated = new Subject<{posts: PostModel[], postCount: number}>();
 
 	constructor(private http: HttpClient, private router: Router) {}
 
-	getPosts() {
-		this.http.get<{ message: string, posts: any }>(POSTS_URL)
-			.pipe(map((postData) => {
-				return postData.posts.map((post: { title: any; content: any; _id: any; imagePath: string }) => ({
-					title: post.title,
-					content: post.content,
-					id: post._id,
-					imagePath: post.imagePath
-				}));
-			}))
+	getPosts(postPerPage: number, currentPage: number) {
+		const queryParams = `?pageSize=${postPerPage}&page=${currentPage}`
+		const URL = POSTS_URL + queryParams
+		this.http.get<{ message: string, posts: any, maxCount: number }>(URL)
+			.pipe(
+				map(
+					(postData) => {
+						return {
+							posts: postData.posts.map((post: { title: any; content: any; _id: any; imagePath: string }) => ({
+								title: post.title,
+								content: post.content,
+								id: post._id,
+								imagePath: post.imagePath
+							})),
+							maxCount: postData.maxCount,
+						};
+					}))
 			.subscribe((updatedPostData) => {
-				this.posts = updatedPostData;
-				this.postsUpdated.next(([...this.posts]));
+				this.posts = updatedPostData.posts;
+				this.postsUpdated.next(({posts: [...this.posts], postCount: updatedPostData.maxCount}));
 			});
 	}
 
@@ -41,9 +48,6 @@ export class PostsService {
 
 		this.http.post<{ message: string, post: PostModel }>(POSTS_URL, postData)
 			.subscribe((resData) => {
-				const post: PostModel = {id: resData.post.id, title, content, imagePath: resData.post.imagePath};
-				this.posts.push(post);
-				this.postsUpdated.next([...this.posts]);
 				this.router.navigate(['/'])
 			})
 	}
@@ -71,12 +75,7 @@ export class PostsService {
 	}
 
 	deletePost(postId: string) {
-		this.http.delete<{ message: string }>(POSTS_URL + `/${postId}`)
-			.subscribe((resData) => {
-				console.log(resData.message);
-				this.posts = this.posts.filter((p) => (postId !== p.id));
-				this.postsUpdated.next([...this.posts]);
-			})
+		return this.http.delete<{ message: string }>(POSTS_URL + `/${postId}`)
 	}
 }
 
