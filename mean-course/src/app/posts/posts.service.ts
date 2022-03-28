@@ -14,10 +14,9 @@ export class PostsService {
 	constructor(private http: HttpClient, private router: Router) {}
 
 	getPosts() {
-		// return [...this.posts];
 		this.http.get<{ message: string, posts: any }>(POSTS_URL)
 			.pipe(map((postData) => {
-				return postData.posts.map((post: { title: any; content: any; _id: any; }) => ({title: post.title, content: post.content, id: post._id}));
+				return postData.posts.map((post: { title: any; content: any; _id: any; imagePath: string }) => ({title: post.title, content: post.content, id: post._id, imagePath: post.imagePath}));
 			}))
 			.subscribe((updatedPostData) => {
 				this.posts = updatedPostData;
@@ -29,11 +28,15 @@ export class PostsService {
 		return this.postsUpdated.asObservable();
 	}
 
-	addPost(title: string, content: string) {
-		const post: PostModel = {id: "ASDASDSAD", title, content};
-		this.http.post<{ message: string, postId: string }>(POSTS_URL, post)
+	addPost(title: string, content: string, image: File) {
+		const postData = new FormData();
+		postData.append('title', title)
+		postData.append('content', content)
+		postData.append('image', image, title)
+
+		this.http.post<{ message: string, post: PostModel }>(POSTS_URL, postData)
 			.subscribe((resData) => {
-				post.id = resData.postId;
+				const post: PostModel = {id: resData.post.id, title, content, imagePath: resData.post.imagePath};
 				this.posts.push(post);
 				this.postsUpdated.next([...this.posts]);
 				this.router.navigate(['/'])
@@ -41,7 +44,7 @@ export class PostsService {
 	}
 
 	getPost(id: string) {
-		return this.http.get<{ message: string, post: { _id: string, title: string, content: string } }>(POSTS_URL + `/${id}`);
+		return this.http.get<{ message: string, post: { _id: string, title: string, content: string, imagePath: string } }>(POSTS_URL + `/${id}`);
 	}
 
 	updatePost(postData: PostModel) {

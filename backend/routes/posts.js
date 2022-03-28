@@ -1,23 +1,57 @@
 const express = require('express');
 const Post = require('../models/post');
+const multer = require('multer');
 
 const PostRouter = express.Router();
 
-// Add post to DB
-PostRouter.post("", (req, res, next) => {
-  const post = new Post({
-    title: req.body.title,
-    content: req.body.content,
-  });
-  console.log(post);
-  post.save()
-    .then(({ _id }) => {
-      res.status(201).json({
-        postId: _id,
-        message: 'Post added successfully!',
-      });
-    });
+const MIME_TYPE_MAP = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+};
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const isValid = MIME_TYPE_MAP[file.mimetype];
+    let error = new Error("Invalid mime type");
+    if (isValid) {
+      error = null;
+    }
+    cb(error, "images");
+  },
+  filename: (req, file, cb) => {
+    const name = file.originalname
+      .toLowerCase()
+      .split(" ")
+      .join("-");
+    const ext = MIME_TYPE_MAP[file.mimetype];
+    cb(null, name + "-" + Date.now() + "." + ext);
+  },
 });
+
+// Add post to DB
+PostRouter.post(
+  "",
+  multer({ storage: storage }).single("image"),
+  (req, res, next) => {
+    const url = `${req.protocol}://${req.get('host')}`;
+    console.log(`${url}/images/${req.file.filename}`);
+    const post = new Post({
+      title: req.body.title,
+      content: req.body.content,
+      imagePath: `${url}/images/${req.file.filename}`,
+    });
+    post.save()
+      .then((createdPost) => {
+        res.status(201).json({
+          message: 'Post added successfully!',
+          post: {
+            ...createdPost,
+            id: createdPost._id,
+          },
+        });
+      });
+  });
 
 // Get post list from DB
 PostRouter.get("", (req, res, next) => {
@@ -42,10 +76,10 @@ PostRouter.get("/:id", (req, res, next) => {
           post,
         });
       }
-    }, () =>{
+    }, () => {
       res.status(404).json({
         message: "Post not found!",
-        post: null
+        post: null,
       });
     });
 
@@ -69,7 +103,7 @@ PostRouter.put("/:id", (req, res, next) => {
 
 // delete post from DB
 PostRouter.delete("/:id", (req, res, next) => {
-  console.log(req.params.id);
+  console.log('deleted post:==> ', req.params.id);
   Post.deleteOne({ _id: req.params.id })
     .then(() => {
       res.status(201).json({

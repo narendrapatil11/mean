@@ -40,8 +40,8 @@ export class PostCreateComponent implements OnInit {
 				this.isLoading = true;
 				this.postService.getPost(this.postId).subscribe((postData) => {
 					this.isLoading = false;
-					const {_id: id, title, content} = postData.post;
-					this.post = {id, content, title}
+					const {_id: id, title, content, imagePath} = postData.post;
+					this.post = {id, content, title, imagePath}
 					this.form.setValue({title, content,})
 				})
 			} else {
@@ -60,10 +60,11 @@ export class PostCreateComponent implements OnInit {
 			this.postService.updatePost({
 				id: this.postId,
 				title: this.form.value.title,
-				content: this.form.value.content
+				content: this.form.value.content,
+				imagePath: '',
 			});
 		} else {
-			this.postService.addPost(this.form.value.title, this.form.value.content);
+			this.postService.addPost(this.form.value.title, this.form.value.content, this.form.value.image);
 			this.form.reset();
 		}
 	}
