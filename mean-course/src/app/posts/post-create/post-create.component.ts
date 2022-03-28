@@ -42,7 +42,7 @@ export class PostCreateComponent implements OnInit {
 					this.isLoading = false;
 					const {_id: id, title, content, imagePath} = postData.post;
 					this.post = {id, content, title, imagePath}
-					this.form.setValue({title, content,})
+					this.form.setValue({title, content, image: imagePath})
 				})
 			} else {
 				this.mode = 'create'
@@ -61,7 +61,7 @@ export class PostCreateComponent implements OnInit {
 				id: this.postId,
 				title: this.form.value.title,
 				content: this.form.value.content,
-				imagePath: '',
+				imagePath: this.form.value.image,
 			});
 		} else {
 			this.postService.addPost(this.form.value.title, this.form.value.content, this.form.value.image);

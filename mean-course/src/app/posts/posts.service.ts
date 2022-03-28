@@ -16,7 +16,12 @@ export class PostsService {
 	getPosts() {
 		this.http.get<{ message: string, posts: any }>(POSTS_URL)
 			.pipe(map((postData) => {
-				return postData.posts.map((post: { title: any; content: any; _id: any; imagePath: string }) => ({title: post.title, content: post.content, id: post._id, imagePath: post.imagePath}));
+				return postData.posts.map((post: { title: any; content: any; _id: any; imagePath: string }) => ({
+					title: post.title,
+					content: post.content,
+					id: post._id,
+					imagePath: post.imagePath
+				}));
 			}))
 			.subscribe((updatedPostData) => {
 				this.posts = updatedPostData;
@@ -49,7 +54,17 @@ export class PostsService {
 
 	updatePost(postData: PostModel) {
 		const post: PostModel = {...postData};
-		this.http.put<{ message: string }>(POSTS_URL + `/${post.id}`, post)
+		let postInfo;
+		if (typeof post.imagePath === 'object') {
+			postInfo = new FormData();
+			postInfo.append('id', post.id);
+			postInfo.append('title', post.title);
+			postInfo.append('content', post.content);
+			postInfo.append('image', post.imagePath, post.title);
+		} else {
+			const postInfo: PostModel = {...post};
+		}
+		this.http.put<{ message: string }>(POSTS_URL + `/${post.id}`, postInfo)
 			.subscribe((resData) => {
 				this.router.navigate(['/'])
 			})
